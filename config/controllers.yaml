@@ -5,15 +5,24 @@ controller:
     wheel_base: 0.400
     wheel_radius: 0.07625
     cmd_vel_timeout: 0.5
+    odom_frame: "odom"
+    base_frame: "base_link"
+    # Velocity mode: "base" for chassis frame (Requirement 5), "global" for world/odom frame via TF (Requirement 7)
+    velocity_mode: "base"
+    # Feature (Requirement 8): Chassis acceleration limits (m/s^2 and rad/s^2)
+    enable_acc_limit: true
+    max_linear_acc: 4.0
+    max_angular_acc: 6.0
     left_front_joint: "left_front_wheel_joint"
     right_front_joint: "right_front_wheel_joint"
     left_back_joint: "left_back_wheel_joint"
     right_back_joint: "right_back_wheel_joint"
-    pid_lf: { p: 1.5, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: true }
-    pid_rf: { p: 1.5, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: true }
-    pid_lb: { p: 1.5, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: true }
-    pid_rb: { p: 1.5, i: 0.0, d: 0.0, i_clamp_max: 0.0, i_clamp_min: 0.0, antiwindup: true }
+  pid_lf: {p: 18.0, i: 1.5, d: 0.12, i_clamp_max: 10.0, i_clamp_min: -10.0, antiwindup: true}
+  pid_rf: {p: 18.0, i: 1.5, d: 0.12, i_clamp_max: 10.0, i_clamp_min: -10.0, antiwindup: true}
+  pid_lb: {p: 18.0, i: 1.5, d: 0.12, i_clamp_max: 10.0, i_clamp_min: -10.0, antiwindup: true}
+  pid_rb: {p: 18.0, i: 1.5, d: 0.12, i_clamp_max: 10.0, i_clamp_min: -10.0, antiwindup: true}
 
   joint_state_controller:
     type: joint_state_controller/JointStateController
     publish_rate: 50
+  j
