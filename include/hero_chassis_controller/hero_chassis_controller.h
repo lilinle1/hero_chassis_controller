@@ -10,7 +10,12 @@
 #include <hardware_interface/joint_command_interface.h>
 #include <control_toolbox/pid.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace hero_chassis_controller
 {
@@ -31,6 +36,7 @@ public:
 private:
   void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg);
   void computeInverseKinematics(double vx, double vy, double wz);
+  void updateOdometry(const ros::Time& time, const ros::Duration& period);
 
   // Joint handles for 4 Mecanum wheels
   hardware_interface::JointHandle front_left_joint_;
@@ -60,9 +66,18 @@ private:
   double desired_vel_lb_{0.0};
   double desired_vel_rb_{0.0};
 
-  // ROS subscriber and debug publisher for rqt_plot
+  // Odometry state in "odom" frame (x, y, yaw)
+  double odom_x_{0.0};
+  double odom_y_{0.0};
+  double odom_yaw_{0.0};
+  std::string odom_frame_{"odom"};
+  std::string base_frame_{"base_link"};
+
+  // ROS subscriber, publishers and TF broadcaster
   ros::Subscriber cmd_vel_sub_;
+  ros::Publisher odom_pub_;
   ros::Publisher debug_vel_pub_;
+  tf2_ros::TransformBroadcaster tf_broadcaster_;
 };
 
 }  // namespace hero_chassis_controller
