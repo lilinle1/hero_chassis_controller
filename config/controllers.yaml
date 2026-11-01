@@ -11,7 +11,7 @@ controller:
     velocity_mode: "base"
     # Feature (Requirement 8): Chassis acceleration limits (m/s^2 and rad/s^2)
     enable_acc_limit: true
-    max_linear_acc: 4.0
+    max_linear_acc: 4.5
     max_angular_acc: 6.0
     left_front_joint: "left_front_wheel_joint"
     right_front_joint: "right_front_wheel_joint"
