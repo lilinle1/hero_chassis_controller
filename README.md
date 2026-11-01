@@ -1,200 +1,43 @@
-# Package Name
+# hero_chassis_controller
 
-## Overview
+英雄机器人麦克纳姆轮底盘控制器（RoboMaster 梯度考核项目）。基于 `ros_control` 框架与 `rm_template` 模板开发，实现了麦克纳姆轮正逆运动学解算、四轮独立速度闭环 PID 控制、里程计（Odometry）航位推算与 TF 广播、基于 TF 的全局坐标系速度控制模式切换，以及底盘加速度平滑限制与键盘遥控功能。
 
-This is a template: replace, remove, and add where required. Describe here what this package does and what it's meant
-for in a few sentences.
+## 1. 功能特性与考核需求对应
 
-**Keywords:** example, package, template
+| 需求项 | 状态 | 实现概述 |
+| :--- | :---: | :--- |
+| **必做 1 & 2** | ✅ | 跑通 `rm_description_for_task` 与 `simple_chassis_controller`，使用 `catkin build` 与 CLion `Attach to Process (gzserver)` 进行断点调试 |
+| **选做 1：创建新包** | ✅ | 基于 `rm_template` 构建 `hero_chassis_controller`，完整配置 `CMakeLists.txt`、`package.xml` 与插件导出文件 |
+| **选做 2：版本管理** | ✅ | 按功能模块分步提交 Commit，包含分支开发与合并冲突处理记录 |
+| **选做 3：代码规范** | ✅ | 严格遵循 ROS C++ Style Guide，通过 `roslint_hero_chassis_controller` 静态检查（0 Error, 0 Warning） |
+| **选做 4：四轮速度 PID** | ✅ | 使用 4 个独立的 `control_toolbox::Pid` 控制器，支持 `config/controllers.yaml` 参数配置及 `rqt_reconfigure` / `rqt_plot` 实时调参绘图 |
+| **选做 5：逆运动学解算** | ✅ | 订阅 `/cmd_vel` (`geometry_msgs/Twist`)，解算四个麦克纳姆轮期望角速度 |
+| **选做 6：正运动学里程计** | ✅ | 根据四轮实际角速度解算底盘实际速度并积分，发布 `/odom` (`nav_msgs/Odometry`) 并广播 `odom -> base_link` TF 变换 |
+| **选做 7：全局坐标系控制** | ✅ | 使用 `tf::TransformListener::transformVector` 将全局坐标系（`odom`）下的速度指令转换至底盘坐标系（`base_link`），可在配置文件中切换 `base` / `global` 模式 |
+| **选做 8：特色功能** | ✅ | 1. 配置文件可设定底盘线加速度与角加速度限制（斜坡速度规划防打滑）；<br>2. 集成 `teleop_twist_keyboard` 全向键盘控制 |
 
-Or, add some keywords to the Bitbucket or GitHub repository.
+---
 
-### License
+## 2. 运动学模型（O型麦克纳姆轮布局）
 
-The source code is released under a [BSD 3-Clause license](LICENSE).
+设底盘轮距为 $W = \text{wheel\_track} = 0.4\text{ m}$，轴距为 $L = \text{wheel\_base} = 0.4\text{ m}$，几何半和 $k = \frac{W + L}{2} = 0.4\text{ m}$，麦轮半径为 $R = 0.07625\text{ m}$。
 
-**Author: Péter Fankhauser<br />
-Affiliation: [ANYbotics](https://www.anybotics.com/)<br />
-Maintainer: Péter Fankhauser, pfankhauser@anybotics.com**
+### 2.1 逆运动学（底盘期望速度 $\rightarrow$ 四轮期望角速度）
+$$\begin{bmatrix} \omega_{lf} \\ \omega_{rf} \\ \omega_{lb} \\ \omega_{rb} \end{bmatrix} = \frac{1}{R} \begin{bmatrix} 1 & -1 & -k \\ 1 & 1 & k \\ 1 & 1 & -k \\ 1 & -1 & k \end{bmatrix} \begin{bmatrix} v_x \\ v_y \\ \omega_z \end{bmatrix}$$
 
-The PACKAGE NAME package has been tested under [ROS] Indigo, Melodic and Noetic on respectively Ubuntu 14.04, 18.04 and
-20.04. This is research code, expect that it changes often and any fitness for a particular purpose is disclaimed.
+### 2.2 正运动学（四轮实际角速度 $\rightarrow$ 底盘实际速度）
+$$\begin{aligned}
+v_x &= \frac{R}{4} (\omega_{lf} + \omega_{rf} + \omega_{lb} + \omega_{rb}) \\
+v_y &= \frac{R}{4} (-\omega_{lf} + \omega_{rf} + \omega_{lb} - \omega_{rb}) \\
+\omega_z &= \frac{R}{4k} (-\omega_{lf} + \omega_{rf} - \omega_{lb} + \omega_{rb})
+\end{aligned}$$
 
-[![Build Status](http://rsl-ci.ethz.ch/buildStatus/icon?job=ros_best_practices)](http://rsl-ci.ethz.ch/job/ros_best_practices/)
+---
 
-![Example image](doc/example.jpg)
+## 3. 编译与运行指南
 
-[comment]: <> (### Publications)
-
-[comment]: <> (If you use this work in an academic context, please cite the following publication&#40;s&#41;:)
-
-[comment]: <> (* P. Fankhauser, M. Bloesch, C. Gehring, M. Hutter, and R. Siegwart: **PAPER TITLE**. IEEE/RSJ International Conference)
-
-[comment]: <> (  on Intelligent Robots and Systems &#40;IROS&#41;, 2015. &#40;[PDF]&#40;http://dx.doi.org/10.3929/ethz-a-010173654&#41;&#41;)
-
-[comment]: <> (        @inproceedings{Fankhauser2015,)
-
-[comment]: <> (            author = {Fankhauser, P\'{e}ter and Hutter, Marco},)
-
-[comment]: <> (            booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems &#40;IROS&#41;},)
-
-[comment]: <> (            title = {{PAPER TITLE}},)
-
-[comment]: <> (            publisher = {IEEE},)
-
-[comment]: <> (            year = {2015})
-
-[comment]: <> (        })
-
-## Installation
-
-### Installation from Packages
-
-To install all packages from the this repository as Debian packages use
-
-    sudo apt-get install ros-noetic-...
-
-Or better, use `rosdep`:
-
-	sudo rosdep install --from-paths src
-
-### Building from Source
-
-#### Dependencies
-
-- [Robot Operating System (ROS)](http://wiki.ros.org) (middleware for robotics),
-- [Eigen] (linear algebra library)
-
-  sudo rosdep install --from-paths src
-
-#### Building
-
-To build from source, clone the latest version from this repository into your catkin workspace and compile the package
-using
-
-	cd catkin_workspace/src
-	git clone https://github.com/ethz-asl/ros_best_practices.git
-	cd ../
-	rosdep install --from-paths . --ignore-src
-	catkin_make
-
-### Running in Docker
-
-Docker is a great way to run an application with all dependencies and libraries bundles together. Make sure
-to [install Docker](https://docs.docker.com/get-docker/) first.
-
-First, spin up a simple container:
-
-	docker run -ti --rm --name ros-container ros:noetic bash
-
-This downloads the `ros:noetic` image from the Docker Hub, indicates that it requires an interactive terminal (`-t, -i`)
-, gives it a name (`--name`), removes it after you exit the container (`--rm`) and runs a command (`bash`).
-
-Now, create a catkin workspace, clone the package, build it, done!
-
-	apt-get update && apt-get install -y git
-	mkdir -p /ws/src && cd /ws/src
-	git clone https://github.com/leggedrobotics/ros_best_practices.git
-	cd ..
-	rosdep install --from-path src
-	catkin_make
-	source devel/setup.bash
-	roslaunch ros_package_template ros_package_template.launch
-
-### Unit Tests
-
-Run the unit tests with
-
-	catkin_make run_tests_ros_package_template
-
-### Static code analysis
-
-Run the static code analysis with
-
-	catkin_make roslint_ros_package_template
-
-## Usage
-
-Describe the quickest way to run this software, for example:
-
-Run the main node with
-
-	roslaunch ros_package_template ros_package_template.launch
-
-## Config files
-
-Config file folder/set 1
-
-* **config_file_1.yaml** Shortly explain the content of this config file
-
-Config file folder/set 2
-
-* **...**
-
-## Launch files
-
-* **launch_file_1.launch:** shortly explain what is launched (e.g standard simulation, simulation with gdb,...)
-
-  Argument set 1
-
-    - **`argument_1`** Short description (e.g. as commented in launch file). Default: `default_value`.
-
-  Argument set 2
-
-    - **`...`**
-
-* **...**
-
-## Nodes
-
-### ros_package_template
-
-Reads temperature measurements and computed the average.
-
-#### Subscribed Topics
-
-* **`/temperature`** ([sensor_msgs/Temperature])
-
-  The temperature measurements from which the average is computed.
-
-#### Published Topics
-
-...
-
-#### Services
-
-* **`get_average`** ([std_srvs/Trigger])
-
-  Returns information about the current average. For example, you can trigger the computation from the console with
-
-  	rosservice call /ros_package_template/get_average
-
-#### Parameters
-
-* **`subscriber_topic`** (string, default: "/temperature")
-
-  The name of the input topic.
-
-* **`cache_size`** (int, default: 200, min: 0, max: 1000)
-
-  The size of the cache.
-
-### NODE_B_NAME
-
-...
-
-## Bugs & Feature Requests
-
-Please report bugs and request features using the [Issue Tracker](https://github.com/gdut-dynamic-x/rm_template/issues)
-.
-
-
-[ROS]: http://www.ros.org
-
-[rviz]: http://wiki.ros.org/rviz
-
-[Eigen]: http://eigen.tuxfamily.org
-
-[std_srvs/Trigger]: http://docs.ros.org/api/std_srvs/html/srv/Trigger.html
-
-[sensor_msgs/Temperature]: http://docs.ros.org/api/sensor_msgs/html/msg/Temperature.html
+### 3.1 编译与代码规范检查
+```bash
+cd ~/workspace/hero_ws
+catkin build -DCMAKE_BUILD_TYPE=Debug
+catkin build hero_chassis_controller --no-deps --make-args roslint_hero_chassis_controller
