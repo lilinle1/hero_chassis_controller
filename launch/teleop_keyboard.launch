@@ -1,6 +1,8 @@
 <launch>
+  <!-- Launch teleop_twist_keyboard node to control the Hero Mecanum chassis -->
   <node name="teleop_twist_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen">
     <param name="speed" value="0.8"/>
     <param name="turn" value="1.5"/>
+    <param name="repeat_rate" value="20.0"/>
   </node>
 </launch>
