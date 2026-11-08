@@ -1,8 +1,10 @@
-# hero_chassis_controller
+# Hero Chassis Controller (英雄机器人麦克纳姆轮底盘控制器)
 
-英雄机器人麦克纳姆轮底盘控制器（RoboMaster 梯度考核项目）。基于 `ros_control` 框架与 `rm_template` 模板开发，实现了麦克纳姆轮正逆运动学解算、四轮独立速度闭环 PID 控制、里程计（Odometry）航位推算与 TF 广播、基于 TF 的全局坐标系速度控制模式切换，以及底盘加速度平滑限制与键盘遥控功能。
+* **作者 (Author)**: lilinle1
+* **开发环境**: Ubuntu (Legion Y7000P) + Docker (`my_ros_noetic:v1`) + CLion (Docker Toolchain)
+* **仓库地址**: `https://github.com/lilinle1/hero_chassis_controller`
 
-## 1. 功能特性与考核需求对应
+## 1. 考核指标完成情况总览
 
 | 需求项 | 状态 | 实现概述 |
 | :--- | :---: | :--- |
@@ -34,7 +36,20 @@ v_y &= \frac{R}{4} (-\omega_{lf} + \omega_{rf} + \omega_{lb} - \omega_{rb}) \\
 
 ---
 
-## 3. 编译与运行指南
+## 3. 个人调试心得与工程排错记录 (Troubleshooting & Optimization)
+
+在开发与调试过程中，针对仿真特性与工具链进行了以下工程优化：
+
+1. **`rqt_plot` 高频阻塞优化（50Hz 分频发布机制）**：
+   控制器 `update()` 运行在 1000Hz 物理引擎周期下，最初直接每周期发布 `Float64MultiArray` 会导致基于 Python 的 `rqt_plot` 绘图界面发生严重延迟与坐标轴停滞。为此在代码中引入了分频计数器 `publish_div_`（每 20 个控制周期即 50Hz 发布一次独立话题 `lf_target_vel` 与 `lf_actual_vel`），使阶跃响应曲线丝滑流畅。
+2. **仿真时间重置（Reset Time）导致看门狗锁死问题修复**：
+   最初在 `/cmd_vel` 回调函数中使用 `ros::Time::now()` 记录时间戳，当在 Gazebo 中重置时间或跨终端发布指令存在微小钟差时，易导致 `(time - last_cmd_time_).toSec()` 出现负数或异常跳变。后续改为通过布尔标志位 `new_cmd_received_` 在 `update(time, period)` 中统一使用物理引擎传入的 `time` 更新时间戳，并采用绝对值判断 `std::abs(...) > cmd_vel_timeout_`，彻底消除了重置仿真后的锁死现象。
+3. **PID 参数整定与斜坡加速度配合**：
+   测试过高的比例增益（如 $P=18.0, I=1.5$）在阶跃启动时易触发电机最大力矩饱和（URDF 中 `max_effort="5"`）并引发底盘打滑。最终整定为 $P=1.5, I=0.0, D=0.0$，并配合 `max_linear_acc: 4.5` 的斜坡加速度限制器，实现了无超调、低纹波的平滑加减速跟随。
+4. **YAML 格式解析排错**：
+   排查了 `rosparam` 对紧凑内联格式 `{p: 1.5, ...}`（大括号后无空格）解析失败导致报 `No p gain specified for pid` 的问题，统一规范为标准多行缩进 YAML 结构。
+
+---
 
 ### 3.1 编译与代码规范检查
 ```bash
