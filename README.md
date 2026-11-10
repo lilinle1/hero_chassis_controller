@@ -22,7 +22,7 @@
 
 ## 2. 运动学模型（O型麦克纳姆轮布局）
 
-设底盘轮距为 $W = \text{wheel\_track} = 0.4\text{ m}$，轴距为 $L = \text{wheel\_base} = 0.4\text{ m}$，几何半和 $k = \frac{W + L}{2} = 0.4\text{ m}$，麦轮半径为 $R = 0.07625\text{ m}$。
+设底盘轮距为 $W = 0.4\text{ m}$（参数 `wheel_track`），轴距为 $L = 0.4\text{ m}$（参数 `wheel_base`），几何半和 $k = \frac{W + L}{2} = 0.4\text{ m}$，麦轮半径为 $R = 0.07625\text{ m}$。
 
 ### 2.1 逆运动学（底盘期望速度 $\rightarrow$ 四轮期望角速度）
 $$\begin{bmatrix} \omega_{lf} \\ \omega_{rf} \\ \omega_{lb} \\ \omega_{rb} \end{bmatrix} = \frac{1}{R} \begin{bmatrix} 1 & -1 & -k \\ 1 & 1 & k \\ 1 & 1 & -k \\ 1 & -1 & k \end{bmatrix} \begin{bmatrix} v_x \\ v_y \\ \omega_z \end{bmatrix}$$
