@@ -45,14 +45,50 @@ v_y &= \frac{R}{4} (-\omega_{lf} + \omega_{rf} + \omega_{lb} - \omega_{rb}) \\
 2. **仿真时间重置（Reset Time）导致看门狗锁死问题修复**：
    最初在 `/cmd_vel` 回调函数中使用 `ros::Time::now()` 记录时间戳，当在 Gazebo 中重置时间或跨终端发布指令存在微小钟差时，易导致 `(time - last_cmd_time_).toSec()` 出现负数或异常跳变。后续改为通过布尔标志位 `new_cmd_received_` 在 `update(time, period)` 中统一使用物理引擎传入的 `time` 更新时间戳，并采用绝对值判断 `std::abs(...) > cmd_vel_timeout_`，彻底消除了重置仿真后的锁死现象。
 3. **PID 参数整定与斜坡加速度配合**：
-   测试过高的比例增益（如 $P=18.0, I=1.5$）在阶跃启动时易触发电机最大力矩饱和（URDF 中 `max_effort="5"`）并引发底盘打滑。最终整定为 $P=1.5, I=0.0, D=0.0$，并配合 `max_linear_acc: 4.5` 的斜坡加速度限制器，实现了无超调、低纹波的平滑加减速跟随。
+   测试过高的比例增益（如 $P=18.0, I=1.5$）在阶跃启动时易触发电机最大力矩饱和（URDF 中 `max_effort="5"`）并引发底盘打滑。最终整定为 $P=2.0, I=0.0, D=0.0$，并配合 `max_linear_acc: 4.5`、`max_angular_acc: 6.0` 的斜坡加速度限制器，实现了无超调、低纹波的平滑加减速跟随。
 4. **YAML 格式解析排错**：
-   排查了 `rosparam` 对紧凑内联格式 `{p: 1.5, ...}`（大括号后无空格）解析失败导致报 `No p gain specified for pid` 的问题，统一规范为标准多行缩进 YAML 结构。
+   排查了 `rosparam` 对键值对冒号后缺少空格导致报 `No p gain specified for pid` 的问题，规范了 `config/controllers.yaml` 中 PID 参数字典的键值语法。
 
 ---
 
-### 3.1 编译与代码规范检查
+## 4. 编译与运行指南
+
+### 4.1 编译与代码规范检查
 ```bash
 cd ~/workspace/hero_ws
 catkin build -DCMAKE_BUILD_TYPE=Debug
 catkin build hero_chassis_controller --no-deps --make-args roslint_hero_chassis_controller
+```
+
+### 4.2 一键启动 Gazebo 仿真与底盘控制器
+```bash
+source ~/workspace/hero_ws/devel/setup.bash
+roslaunch hero_chassis_controller run_simulation_and_controller.launch
+```
+> 注：Gazebo 默认以暂停模式（`paused:=true`）启动，点击 Gazebo 左下角的 **Play (▶)** 按钮即可开始物理仿真。
+
+### 4.3 键盘遥控与速度指令测试
+开启新终端运行全向键盘控制节点（支持心跳保活发布）：
+```bash
+source ~/workspace/hero_ws/devel/setup.bash
+roslaunch hero_chassis_controller teleop_keyboard.launch
+```
+或直接通过终端发布 `/cmd_vel` 组合速度指令（测试逆运动学与加减速斜坡）：
+```bash
+rostopic pub -r 20 /cmd_vel geometry_msgs/Twist "linear: {x: 0.6, y: 0.2, z: 0.0}
+angular: {x: 0.0, y: 0.0, z: 0.4}"
+```
+
+### 4.4 状态观测与模式切换
+* **PID 阶跃响应曲线观测 (`rqt_plot`)**：
+  ```bash
+  rqt_plot /controller/hero_chassis_controller/lf_target_vel/data /controller/hero_chassis_controller/lf_actual_vel/data
+  ```
+* **里程计与 TF 树观测 (`rviz`)**：
+  启动 `rviz`，将 `Fixed Frame` 设为 `odom`，添加 `TF` 与 `Odometry`（话题 `/odom`）即可实时观测底盘航位推算轨迹。
+* **底盘坐标系 (`base`) / 全局坐标系 (`global`) 模式切换**：
+  在 `config/controllers.yaml` 中修改 `velocity_mode: "base"` 或 `"global"`，或在运行时动态修改参数：
+  ```bash
+  rosparam set /controller/hero_chassis_controller/velocity_mode "global"
+  ```
+
