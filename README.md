@@ -11,7 +11,7 @@
 | **必做 1 & 2** | ✅ | 跑通 `rm_description_for_task` 与 `simple_chassis_controller`，使用 `catkin build` 与 CLion `Attach to Process (gzserver)` 进行断点调试 |
 | **选做 1：创建新包** | ✅ | 基于 `rm_template` 构建 `hero_chassis_controller`，完整配置 `CMakeLists.txt`、`package.xml` 与插件导出文件 |
 | **选做 2：版本管理** | ✅ | 按功能模块分步提交 Commit，包含分支开发与合并冲突处理记录 |
-| **选做 3：代码规范** | ✅ | 严格遵循 ROS C++ Style Guide，通过 `roslint_hero_chassis_controller` 静态检查（0 Error, 0 Warning） |
+| **选做 3：代码规范** | ✅ | 严格遵循 ROS C++ Style Guide |
 | **选做 4：四轮速度 PID** | ✅ | 使用 4 个独立的 `control_toolbox::Pid` 控制器，支持 `config/controllers.yaml` 参数配置及 `rqt_reconfigure` / `rqt_plot` 实时调参绘图 |
 | **选做 5：逆运动学解算** | ✅ | 订阅 `/cmd_vel` (`geometry_msgs/Twist`)，解算四个麦克纳姆轮期望角速度 |
 | **选做 6：正运动学里程计** | ✅ | 根据四轮实际角速度解算底盘实际速度并积分，发布 `/odom` (`nav_msgs/Odometry`) 并广播 `odom -> base_link` TF 变换 |
