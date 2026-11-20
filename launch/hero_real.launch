@@ -1,0 +1,25 @@
+<launch>
+  <!-- 1. 加载英雄机器人 URDF 模型到参数服务器 (包含 4 个轮子的 transmission 映射) -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find rm_description_for_task)/urdf/hero/hero.urdf.xacro"/>
+
+  <!-- 2. 加载 rm_hw 官方电机系数 (含 rm_3508 的 19:1 减速比与转矩电流换算系数) -->
+  <rosparam file="$(find rm_hw)/config/actuator_coefficient.yaml" command="load" ns="rm_hw"/>
+
+  <!-- 3. 加载本机实车 CAN 总线与电机 ID 配置 -->
+  <rosparam file="$(find hero_chassis_controller)/config/rm_hw.yaml" command="load"/>
+
+  <!-- 4. 加载实车专用控制器参数 (保守初始 PID + joint_state_controller) -->
+  <rosparam file="$(find hero_chassis_controller)/config/controllers_real.yaml" command="load"/>
+
+  <!-- 5. 启动 rm_hw 硬件接口节点 (替代仿真时的 Gazebo!) -->
+  <node name="rm_hw" pkg="rm_hw" type="rm_hw" respawn="false" output="screen"/>
+
+  <!-- 6. 加载并启动控制器 (同一个 hero_chassis_controller 插件!) -->
+  <node name="controller_loader" pkg="controller_manager" type="spawner" output="screen"
+        args="controller/joint_state_controller
+              controller/hero_chassis_controller"/>
+
+  <!-- 7. 发布机器人各关节 TF 状态 (供 RViz 可视化轮子转动) -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+</launch>
